@@ -51,7 +51,8 @@ namespace TotalMixKeyControl
 		{
 			foreach (var id in new List<int>(_actions.Keys))
 			{
-				try { UnregisterHotKey(_window.Handle, id); } catch { }
+				try { UnregisterHotKey(_window.Handle, id); }
+				catch (Exception exception) { Log.Error("Failed to unregister hotkey.", exception); }
 				_actions.Remove(id);
 			}
 		}
@@ -62,7 +63,8 @@ namespace TotalMixKeyControl
 			int id = m.WParam.ToInt32();
 			if (_actions.TryGetValue(id, out var action))
 			{
-				try { action(); } catch { }
+				try { action(); }
+				catch (Exception exception) { Log.Error("Hotkey action failed.", exception); }
 			}
 		}
 	}

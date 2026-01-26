@@ -65,30 +65,27 @@ namespace TotalMixKeyControl
 
             var lblTitle = new Label { Text = "TotalMix Key Control Setup", AutoSize = false, TextAlign = ContentAlignment.MiddleCenter, Location = new Point(130, 15), Size = new Size(220, 20) };
 
-            var lblUp = new Label { Text = "Volume Up Hotkey", Location = new Point(30, 70), Size = new Size(180, 20) };
-            _hkUp = new TextBox { Location = new Point(220, 70), Size = new Size(170, 20), Text = hkUp };
-            
+            var lblUp = MakeLabel("Volume Up Hotkey", 30, 70);
+            _hkUp = MakeTextBox(220, 70, 170, 20, hkUp);
 
-            var lblDown = new Label { Text = "Volume Down Hotkey", Location = new Point(30, 110), Size = new Size(180, 20) };
-            _hkDown = new TextBox { Location = new Point(220, 110), Size = new Size(170, 20), Text = hkDown };
-            
+            var lblDown = MakeLabel("Volume Down Hotkey", 30, 110);
+            _hkDown = MakeTextBox(220, 110, 170, 20, hkDown);
 
-            var lblMute = new Label { Text = "Volume Mute Hotkey", Location = new Point(30, 150), Size = new Size(180, 20) };
-            _hkMute = new TextBox { Location = new Point(220, 150), Size = new Size(170, 20), Text = hkMute };
-            
+            var lblMute = MakeLabel("Volume Mute Hotkey", 30, 150);
+            _hkMute = MakeTextBox(220, 150, 170, 20, hkMute);
 
-            var lblIp = new Label { Text = "TotalMix FX OSC IP", Location = new Point(30, 190), Size = new Size(180, 20) };
-            _ipBox = new TextBox { Location = new Point(220, 190), Size = new Size(200, 20), Text = ip };
+            var lblIp = MakeLabel("TotalMix FX OSC IP", 30, 190);
+            _ipBox = MakeTextBox(220, 190, 200, 20, ip);
 
-            var lblPort = new Label { Text = "TotalMix FX OSC Port (incoming)", Location = new Point(30, 230), Size = new Size(180, 20) };
-            _portBox = new NumericUpDown { Location = new Point(220, 230), Size = new Size(200, 20), Minimum = 1, Maximum = 65535, Value = port };
+            var lblPort = MakeLabel("TotalMix FX OSC Port (incoming)", 30, 230);
+            _portBox = MakeNumeric(220, 230, 200, 20, 1, 65535, port);
 
-            var lblOutPort = new Label { Text = "TotalMix FX OSC Port (outgoing)", Location = new Point(30, 270), Size = new Size(180, 20) };
-            _outPortBox = new NumericUpDown { Location = new Point(220, 270), Size = new Size(200, 20), Minimum = 1, Maximum = 65535, Value = outPort };
+            var lblOutPort = MakeLabel("TotalMix FX OSC Port (outgoing)", 30, 270);
+            _outPortBox = MakeNumeric(220, 270, 200, 20, 1, 65535, outPort);
 
             // Volume Step Speed
-            var lblStep = new Label { Text = "Volume Step Speed", Location = new Point(30, 350), Size = new Size(180, 20) };
-            _volStepSpeed = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(220, 350), Size = new Size(200, 22) };
+            var lblStep = MakeLabel("Volume Step Speed", 30, 350);
+            _volStepSpeed = MakeCombo(220, 350, 200, 22);
             _volStepSpeed.Items.AddRange(new object[] { "1", "2", "3", "4" });
             // infer selected from current volumeStep (0.01f * factor)
             var factor = Math.Max(1, Math.Min(4, (int)Math.Round(volumeStep / 0.01f)));
@@ -97,20 +94,21 @@ namespace TotalMixKeyControl
             // OSD group
             var grpOsd = new GroupBox { Text = "OSD", Location = new Point(20, 390), Size = new Size(440, 160) };
             _osdEnabled = new CheckBox { Text = "Enable OSD", Location = new Point(16, 28), Size = new Size(160, 22), Checked = osdEnabled };
-            var lblPos = new Label { Text = "Position", Location = new Point(16, 62), Size = new Size(140, 20) };
-            _osdPosition = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(160, 60), Size = new Size(240, 22) };
+            var lblPos = MakeLabel("Position", 16, 62, 140, 20);
+            _osdPosition = MakeCombo(160, 60, 240, 22);
             _osdPosition.Items.AddRange(new object[] { "TopLeft", "TopCenter", "TopRight", "BottomLeft", "BottomCenter", "BottomRight" });
             _osdPosition.SelectedItem = (object?)(Array.Exists(new[]{"TopLeft","TopCenter","TopRight","BottomLeft","BottomCenter","BottomRight"}, x => string.Equals(x, osdPosition, StringComparison.OrdinalIgnoreCase)) ? osdPosition : "BottomCenter");
-            var lblMargin = new Label { Text = "Position Margin", Location = new Point(16, 96), Size = new Size(140, 20) };
-            _osdMarginPreset = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(160, 94), Size = new Size(240, 22) };
+            var lblMargin = MakeLabel("Position Margin", 16, 96, 140, 20);
+            _osdMarginPreset = MakeCombo(160, 94, 240, 22);
             _osdMarginPreset.Items.AddRange(new object[] { "None", "Small", "Medium", "Large" });
             _osdMarginPreset.SelectedItem = (object?)(Array.Exists(new[]{"None","Small","Medium","Large"}, x => string.Equals(x, osdMarginPreset, StringComparison.OrdinalIgnoreCase)) ? osdMarginPreset : "Small");
-            var lblTime = new Label { Text = "Display Time (ms)", Location = new Point(16, 128), Size = new Size(140, 20) };
-            _osdDisplayTime = new NumericUpDown { Location = new Point(160, 126), Size = new Size(120, 22), Minimum = 500, Maximum = 20000, Increment = 100, Value = Math.Max(500, Math.Min(20000, osdDisplayTimeMs <= 0 ? 2500 : osdDisplayTimeMs)) };
+            var lblTime = MakeLabel("Display Time (ms)", 16, 128, 140, 20);
+            _osdDisplayTime = MakeNumeric(160, 126, 120, 22, 500, 20000, Math.Max(500, Math.Min(20000, osdDisplayTimeMs <= 0 ? 2500 : osdDisplayTimeMs)));
+            _osdDisplayTime.Increment = 100;
             grpOsd.Controls.AddRange(new Control[] { _osdEnabled, lblPos, _osdPosition, lblMargin, _osdMarginPreset, lblTime, _osdDisplayTime });
 
-            var lblAddr = new Label { Text = "OSC Address", Location = new Point(30, 310), Size = new Size(180, 20) };
-            _addrBox = new TextBox { Location = new Point(220, 310), Size = new Size(200, 20), Text = address };
+            var lblAddr = MakeLabel("OSC Address", 30, 310);
+            _addrBox = MakeTextBox(220, 310, 200, 20, address);
 
             var btnOk = new Button { Text = "OK", Location = new Point(272, 570), Size = new Size(110, 30) };
             var btnCancel = new Button { Text = "Cancel", Location = new Point(62, 570), Size = new Size(100, 30) };
@@ -219,6 +217,38 @@ namespace TotalMixKeyControl
 
                 // Move focus to next field if provided
                 next?.Focus();
+            };
+        }
+
+        private static Label MakeLabel(string text, int x, int y, int width = 180, int height = 20)
+        {
+            return new Label { Text = text, Location = new Point(x, y), Size = new Size(width, height) };
+        }
+
+        private static TextBox MakeTextBox(int x, int y, int width, int height, string text)
+        {
+            return new TextBox { Location = new Point(x, y), Size = new Size(width, height), Text = text };
+        }
+
+        private static NumericUpDown MakeNumeric(int x, int y, int width, int height, int min, int max, int value)
+        {
+            return new NumericUpDown
+            {
+                Location = new Point(x, y),
+                Size = new Size(width, height),
+                Minimum = min,
+                Maximum = max,
+                Value = value
+            };
+        }
+
+        private static ComboBox MakeCombo(int x, int y, int width, int height)
+        {
+            return new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Location = new Point(x, y),
+                Size = new Size(width, height)
             };
         }
     }

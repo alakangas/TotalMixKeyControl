@@ -53,7 +53,8 @@ namespace TotalMixKeyControl
 
 		private void DisposeClient()
 		{
-			try { _client?.Dispose(); } catch { }
+			try { _client?.Dispose(); }
+			catch (Exception exception) { Log.Error("Failed to dispose OSC client.", exception); }
 			_client = null;
 			_endpoint = null;
 		}

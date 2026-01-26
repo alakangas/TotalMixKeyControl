@@ -3,14 +3,15 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace TotalMixKeyControl
 {
 	internal sealed class OscReceiver : IDisposable
 	{
 		private UdpClient? _udp;
-		private Thread? _thread;
-		private volatile bool _running;
+		private CancellationTokenSource? _cts;
+		private Task? _receiveTask;
 
 		public event Action<string, float>? FloatMessageReceived;
 		public event Action<string, string>? StringMessageReceived;
@@ -22,42 +23,57 @@ namespace TotalMixKeyControl
 			Stop();
 			Port = port;
 			_udp = new UdpClient(new IPEndPoint(IPAddress.Any, port));
-			_running = true;
-			_thread = new Thread(Loop) { IsBackground = true, Name = "OscReceiver" };
-			_thread.Start();
+			_cts = new CancellationTokenSource();
+			_receiveTask = Task.Run(() => LoopAsync(_cts.Token));
 		}
 
 		public void Stop()
 		{
-			_running = false;
-			try { _udp?.Close(); } catch { }
+			_cts?.Cancel();
+			try { _udp?.Close(); }
+			catch (Exception exception) { Log.Error("Failed to close OSC UDP socket.", exception); }
+			try { _udp?.Dispose(); }
+			catch (Exception exception) { Log.Error("Failed to dispose OSC UDP socket.", exception); }
 			_udp = null;
-			if (_thread != null)
+			if (_receiveTask != null)
 			{
-				try { _thread.Join(250); } catch { }
-				_thread = null;
+				try { _receiveTask.Wait(250); }
+				catch (Exception exception) { Log.Error("Failed to stop OSC receiver task.", exception); }
+				_receiveTask = null;
 			}
+			_cts?.Dispose();
+			_cts = null;
 		}
 
-		private void Loop()
+		private async Task LoopAsync(CancellationToken token)
 		{
 			var udp = _udp;
 			if (udp == null) return;
-			IPEndPoint any = new IPEndPoint(IPAddress.Any, 0);
-			while (_running)
+			while (!token.IsCancellationRequested)
 			{
 				try
 				{
-					var data = udp.Receive(ref any);
+					var result = await udp.ReceiveAsync(token);
+					var data = result.Buffer;
 					if (data == null || data.Length < 8) continue;
 					ParseOscPacket(data);
 				}
-				catch (SocketException)
+				catch (OperationCanceledException)
 				{
-					if (!_running) break;
+					break;
 				}
-				catch
+				catch (ObjectDisposedException)
 				{
+					break;
+				}
+				catch (SocketException exception)
+				{
+					if (token.IsCancellationRequested) break;
+					Log.Error("OSC socket error.", exception);
+				}
+				catch (Exception exception)
+				{
+					Log.Error("OSC receive loop error.", exception);
 				}
 			}
 		}
@@ -79,7 +95,11 @@ namespace TotalMixKeyControl
 					var elem = new byte[elemLen];
 					Buffer.BlockCopy(buffer, idx, elem, 0, elemLen);
 					idx += elemLen;
-					try { ParseOscPacket(elem); } catch { }
+					try { ParseOscPacket(elem); }
+					catch (Exception exception)
+					{
+						Log.Error("Failed to parse OSC bundle element.", exception);
+					}
 				}
 				return;
 			}

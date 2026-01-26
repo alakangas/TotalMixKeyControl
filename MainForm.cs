@@ -24,31 +24,6 @@ namespace TotalMixKeyControl
 		private string _osdPosition = "BottomCenter";
 		private string _osdMarginPreset = "Small";
 
-		// INI sections/keys
-		private const string SectionOsc = "OSC";
-		private const string SectionVolume = "Volume";
-		private const string SectionOsd = "OSD";
-		private const string SectionSettings = "Settings";
-		private const string SectionHotkeys = "Hotkeys";
-
-		private const string KeyPort = "Port";
-		private const string KeyOutPort = "OutPort";
-		private const string KeyIp = "IP";
-		private const string KeyAddress = "Address";
-
-		private const string KeyVolumeStep = "VolumeStep";
-		private const string KeyMaxValue = "MaxValue";
-
-		private const string KeyHideTrayIcon = "HideTrayIcon";
-		private const string KeyOsdDisplayTime = "DisplayTime";
-		private const string KeyOsdEnabled = "Enabled";
-		private const string KeyOsdPosition = "Position";
-		private const string KeyOsdMarginPreset = "MarginPreset";
-
-		private const string KeyVolumeUpHotkey = "VolumeUpHotkey";
-		private const string KeyVolumeDownHotkey = "VolumeDownHotkey";
-		private const string KeyVolumeMuteHotkey = "VolumeMuteHotkey";
-
 		// Private fields
 		private readonly System.Windows.Forms.Timer _renderTimer;
 		private const int RenderCoalesceMs = 25;
@@ -61,6 +36,9 @@ namespace TotalMixKeyControl
 		private int _hideTrayIcon;
 		private bool _oscBusOutputInitialized;
 		private volatile bool _contextMenuOpen;
+		private string _volumeUpHotkey = string.Empty;
+		private string _volumeDownHotkey = string.Empty;
+		private string _volumeMuteHotkey = string.Empty;
 
 		public MainForm(string configPath)
 		{
@@ -95,7 +73,7 @@ namespace TotalMixKeyControl
 				}
 				catch (Exception exception)
 				{
-					Console.WriteLine($"Failed to show context menu: {exception.Message}");
+					Log.Error("Failed to show context menu.", exception);
 				}
 			};
 
@@ -112,7 +90,7 @@ namespace TotalMixKeyControl
 			}
 			catch (Exception exception)
 			{
-				Console.WriteLine($"Failed to load custom icon: {exception.Message}");
+				Log.Error("Failed to load custom icon.", exception);
 			}
 
 			if (!File.Exists(_configPath))
@@ -123,7 +101,7 @@ namespace TotalMixKeyControl
 				}
 				catch (Exception exception)
 				{
-					Console.WriteLine($"Failed to show initial setup: {exception.Message}");
+					Log.Error("Failed to show initial setup.", exception);
 				}
 			}
 
@@ -147,24 +125,21 @@ namespace TotalMixKeyControl
 		{
 			try
 			{
-				// Read OSC
-				_oscIp = IniFile.ReadString(_configPath, SectionOsc, KeyIp, _oscIp);
-				_oscSendPort = IniFile.ReadInt(_configPath, SectionOsc, KeyPort, _oscSendPort);
-				_oscReceivePort = IniFile.ReadInt(_configPath, SectionOsc, KeyOutPort, _oscReceivePort);
-				_oscAddress = IniFile.ReadString(_configPath, SectionOsc, KeyAddress, _oscAddress);
-
-				// Volume
-				_volumeStep = IniFile.ReadFloat(_configPath, SectionVolume, KeyVolumeStep, _volumeStep);
-
-				// Settings
-				_hideTrayIcon = IniFile.ReadInt(_configPath, SectionSettings, KeyHideTrayIcon, _hideTrayIcon);
+				var config = ConfigService.Load(_configPath);
+				_oscIp = config.OscIp;
+				_oscSendPort = config.OscSendPort;
+				_oscReceivePort = config.OscReceivePort;
+				_oscAddress = config.OscAddress;
+				_volumeStep = config.VolumeStep;
+				_hideTrayIcon = config.HideTrayIcon;
 				_notifyIcon.Visible = _hideTrayIcon == 0;
-
-				// OSD
-				_osdDisplayTimeMs = IniFile.ReadInt(_configPath, SectionOsd, KeyOsdDisplayTime, _osdDisplayTimeMs);
-				_osdEnabled = IniFile.ReadInt(_configPath, SectionOsd, KeyOsdEnabled, _osdEnabled ? 1 : 0) != 0;
-				_osdPosition = IniFile.ReadString(_configPath, SectionOsd, KeyOsdPosition, _osdPosition);
-				_osdMarginPreset = IniFile.ReadString(_configPath, SectionOsd, KeyOsdMarginPreset, _osdMarginPreset);
+				_osdDisplayTimeMs = config.OsdDisplayTimeMs;
+				_osdEnabled = config.OsdEnabled;
+				_osdPosition = config.OsdPosition;
+				_osdMarginPreset = config.OsdMarginPreset;
+				_volumeUpHotkey = config.VolumeUpHotkey;
+				_volumeDownHotkey = config.VolumeDownHotkey;
+				_volumeMuteHotkey = config.VolumeMuteHotkey;
 
 				_osdForm.ConfigureLayout(_osdPosition, _osdMarginPreset);
 
@@ -174,7 +149,7 @@ namespace TotalMixKeyControl
 				InitializeOscBusOutput();
 
 				// Hotkeys
-				RegisterHotkeysFromIni();
+				RegisterHotkeys();
 			}
 			catch (Exception exception)
 			{
@@ -182,23 +157,19 @@ namespace TotalMixKeyControl
 			}
 		}
 
-		private void RegisterHotkeysFromIni()
+		private void RegisterHotkeys()
 		{
 			_hotkeyManager.UnregisterAll();
 
-			var upString = IniFile.ReadString(_configPath, SectionHotkeys, KeyVolumeUpHotkey, string.Empty);
-			var downString = IniFile.ReadString(_configPath, SectionHotkeys, KeyVolumeDownHotkey, string.Empty);
-			var muteString = IniFile.ReadString(_configPath, SectionHotkeys, KeyVolumeMuteHotkey, string.Empty);
-
-			if (HotkeyParser.TryParse(upString, out var parsedUpHotkey))
+			if (HotkeyParser.TryParse(_volumeUpHotkey, out var parsedUpHotkey))
 			{
 				_hotkeyManager.Register(parsedUpHotkey.Modifiers, parsedUpHotkey.Key, VolumeUp);
 			}
-			if (HotkeyParser.TryParse(downString, out var parsedDownHotkey))
+			if (HotkeyParser.TryParse(_volumeDownHotkey, out var parsedDownHotkey))
 			{
 				_hotkeyManager.Register(parsedDownHotkey.Modifiers, parsedDownHotkey.Key, VolumeDown);
 			}
-			if (HotkeyParser.TryParse(muteString, out var parsedMuteHotkey))
+			if (HotkeyParser.TryParse(_volumeMuteHotkey, out var parsedMuteHotkey))
 			{
 				_hotkeyManager.Register(parsedMuteHotkey.Modifiers, parsedMuteHotkey.Key, VolumeMute);
 			}
@@ -264,7 +235,7 @@ namespace TotalMixKeyControl
 			}
 			catch (Exception exception)
 			{
-				Console.WriteLine($"Failed to initialize OSC bus output: {exception.Message}");
+				Log.Error("Failed to initialize OSC bus output.", exception);
 			}
 		}
 
@@ -278,7 +249,7 @@ namespace TotalMixKeyControl
 			}
 			catch (Exception exception)
 			{
-				Console.WriteLine($"Failed to stop OSC receiver: {exception.Message}");
+				Log.Error("Failed to stop OSC receiver.", exception);
 			}
 
 			try
@@ -289,7 +260,7 @@ namespace TotalMixKeyControl
 			}
 			catch (Exception exception)
 			{
-				Console.WriteLine($"Failed to start OSC receiver: {exception.Message}");
+				Log.Error("Failed to start OSC receiver.", exception);
 			}
 		}
 
@@ -325,35 +296,7 @@ namespace TotalMixKeyControl
 				return;
 			}
 
-			// Skip OSD while context menu is open to prevent UI deadlock
-			if (_contextMenuOpen)
-			{
-				return;
-			}
-
-			if (InvokeRequired)
-			{
-				try
-				{
-					BeginInvoke(() =>
-					{
-						// Double-check menu state in UI thread context
-						if (_contextMenuOpen)
-						{
-							return;
-						}
-						_osdForm.ShowBarWithText(_volumeReceivedValue, _volumeReceivedString, _osdDisplayTimeMs);
-					});
-				}
-				catch (Exception exception)
-				{
-					Console.WriteLine($"Failed to invoke OSD update: {exception.Message}");
-				}
-			}
-			else
-			{
-				_osdForm.ShowBarWithText(_volumeReceivedValue, _volumeReceivedString, _osdDisplayTimeMs);
-			}
+			ShowOsdIfEnabled();
 		}
 
 		private void ScheduleRender()
@@ -366,7 +309,7 @@ namespace TotalMixKeyControl
 				}
 				catch (Exception exception)
 				{
-					Console.WriteLine($"Failed to invoke ScheduleRender: {exception.Message}");
+					Log.Error("Failed to invoke ScheduleRender.", exception);
 				}
 				return;
 			}
@@ -386,12 +329,7 @@ namespace TotalMixKeyControl
 			{
 				return;
 			}
-			// Skip OSD while context menu is open
-			if (_contextMenuOpen)
-			{
-				return;
-			}
-			_osdForm.ShowBarWithText(_volumeReceivedValue, _volumeReceivedString, _osdDisplayTimeMs);
+			ShowOsdIfEnabled();
 		}
 
 		private void SendOscVolume(float value)
@@ -406,45 +344,49 @@ namespace TotalMixKeyControl
 					return;
 				}
 
-				// Skip OSD while context menu is open
-				if (_contextMenuOpen)
-				{
-					return;
-				}
-
-				if (InvokeRequired)
-				{
-					try
-					{
-						BeginInvoke(() =>
-						{
-							if (_contextMenuOpen) return;
-							_osdForm.ShowBarWithText(_volumeReceivedValue, _volumeReceivedString, _osdDisplayTimeMs);
-						});
-					}
-					catch (Exception exception)
-					{
-						Console.WriteLine($"Failed to invoke OSD update: {exception.Message}");
-					}
-				}
-				else
-				{
-					_osdForm.ShowBarWithText(_volumeReceivedValue, _volumeReceivedString, _osdDisplayTimeMs);
-				}
+				ShowOsdIfEnabled();
 			}
 			catch (Exception exception)
 			{
-				Console.WriteLine($"Failed to send OSC message: {exception.Message}");
+				Log.Error("Failed to send OSC message.", exception);
 			}
+		}
+
+		private void ShowOsdIfEnabled()
+		{
+			if (!_osdEnabled || _contextMenuOpen)
+			{
+				return;
+			}
+
+			if (InvokeRequired)
+			{
+				try
+				{
+					BeginInvoke(ShowOsdIfEnabled);
+				}
+				catch (Exception exception)
+				{
+					Log.Error("Failed to invoke OSD update.", exception);
+				}
+				return;
+			}
+
+			if (_contextMenuOpen)
+			{
+				return;
+			}
+
+			_osdForm.ShowBarWithText(_volumeReceivedValue, _volumeReceivedString, _osdDisplayTimeMs);
 		}
 
 		private void ShowSetup(bool firstRun = false)
 		{
 			using var setupForm = new SetupForm(
 				_oscIp, _oscSendPort, _oscReceivePort, _oscAddress,
-				IniFile.ReadString(_configPath, SectionHotkeys, KeyVolumeUpHotkey, string.Empty),
-				IniFile.ReadString(_configPath, SectionHotkeys, KeyVolumeDownHotkey, string.Empty),
-				IniFile.ReadString(_configPath, SectionHotkeys, KeyVolumeMuteHotkey, string.Empty),
+				_volumeUpHotkey,
+				_volumeDownHotkey,
+				_volumeMuteHotkey,
 				_osdEnabled, _osdPosition, _osdMarginPreset,
 				_osdDisplayTimeMs,
 				_volumeStep,
@@ -466,20 +408,26 @@ namespace TotalMixKeyControl
 			_osdPosition = setupForm.OsdPosition;
 			_osdMarginPreset = setupForm.OsdMarginPreset;
 			_osdDisplayTimeMs = setupForm.OsdDisplayTimeMs;
+			_volumeUpHotkey = setupForm.VolUpHotkey;
+			_volumeDownHotkey = setupForm.VolDownHotkey;
+			_volumeMuteHotkey = setupForm.VolMuteHotkey;
 
-			IniFile.WriteString(_configPath, SectionOsc, KeyIp, _oscIp);
-			IniFile.WriteString(_configPath, SectionOsc, KeyPort, _oscSendPort.ToString());
-			IniFile.WriteString(_configPath, SectionOsc, KeyOutPort, _oscReceivePort.ToString());
-			IniFile.WriteString(_configPath, SectionOsc, KeyAddress, _oscAddress);
-			IniFile.WriteString(_configPath, SectionHotkeys, KeyVolumeUpHotkey, setupForm.VolUpHotkey);
-			IniFile.WriteString(_configPath, SectionHotkeys, KeyVolumeDownHotkey, setupForm.VolDownHotkey);
-			IniFile.WriteString(_configPath, SectionHotkeys, KeyVolumeMuteHotkey, setupForm.VolMuteHotkey);
-			IniFile.WriteString(_configPath, SectionVolume, KeyVolumeStep, _volumeStep.ToString(System.Globalization.CultureInfo.InvariantCulture));
-			IniFile.WriteString(_configPath, SectionOsd, KeyOsdEnabled, _osdEnabled ? "1" : "0");
-			IniFile.WriteString(_configPath, SectionOsd, KeyOsdPosition, _osdPosition);
-			IniFile.WriteString(_configPath, SectionOsd, KeyOsdMarginPreset, _osdMarginPreset);
-			IniFile.WriteString(_configPath, SectionOsd, KeyOsdDisplayTime, _osdDisplayTimeMs.ToString());
-			IniFile.WriteString(_configPath, SectionSettings, KeyHideTrayIcon, _hideTrayIcon.ToString(System.Globalization.CultureInfo.InvariantCulture));
+			ConfigService.Save(_configPath, new AppConfig
+			{
+				OscIp = _oscIp,
+				OscSendPort = _oscSendPort,
+				OscReceivePort = _oscReceivePort,
+				OscAddress = _oscAddress,
+				VolumeStep = _volumeStep,
+				OsdEnabled = _osdEnabled,
+				OsdPosition = _osdPosition,
+				OsdMarginPreset = _osdMarginPreset,
+				OsdDisplayTimeMs = _osdDisplayTimeMs,
+				HideTrayIcon = _hideTrayIcon,
+				VolumeUpHotkey = _volumeUpHotkey,
+				VolumeDownHotkey = _volumeDownHotkey,
+				VolumeMuteHotkey = _volumeMuteHotkey
+			});
 
 			// Reconnect + rebind
 			_oscClient.Configure(_oscIp, _oscSendPort);
@@ -490,7 +438,7 @@ namespace TotalMixKeyControl
 				_oscBusOutputInitialized = false;
 				InitializeOscBusOutput();
 			}
-			RegisterHotkeysFromIni();
+			RegisterHotkeys();
 		}
 
 		protected override void OnClosing(CancelEventArgs eventArgs)
@@ -501,7 +449,7 @@ namespace TotalMixKeyControl
 			}
 			catch (Exception exception)
 			{
-				Console.WriteLine($"Failed to unregister hotkeys: {exception.Message}");
+				Log.Error("Failed to unregister hotkeys.", exception);
 			}
 			base.OnClosing(eventArgs);
 		}
