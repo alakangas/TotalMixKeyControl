@@ -60,6 +60,7 @@ namespace TotalMixKeyControl
 		private bool _mute;
 		private int _hideTrayIcon;
 		private bool _oscBusOutputInitialized;
+		private volatile bool _contextMenuOpen;
 
 		public MainForm(string configPath)
 		{
@@ -132,6 +133,8 @@ namespace TotalMixKeyControl
 		private ContextMenuStrip BuildMenu()
 		{
 			var contextMenuStrip = new ContextMenuStrip();
+			contextMenuStrip.Opening += (_, _) => _contextMenuOpen = true;
+			contextMenuStrip.Closed += (_, _) => _contextMenuOpen = false;
 			var setupMenuItem = new ToolStripMenuItem("Setup", null, (_, _) => ShowSetup());
 			var exitMenuItem = new ToolStripMenuItem("Exit", null, (_, _) => Close());
 			contextMenuStrip.Items.Add(setupMenuItem);
@@ -264,6 +267,7 @@ namespace TotalMixKeyControl
 				Console.WriteLine($"Failed to initialize OSC bus output: {exception.Message}");
 			}
 		}
+
 		private void StartOscReceiver()
 		{
 			try
@@ -321,12 +325,25 @@ namespace TotalMixKeyControl
 				return;
 			}
 
+			// Skip OSD while context menu is open to prevent UI deadlock
+			if (_contextMenuOpen)
+			{
+				return;
+			}
+
 			if (InvokeRequired)
 			{
 				try
 				{
 					BeginInvoke(() =>
-						_osdForm.ShowBarWithText(_volumeReceivedValue, _volumeReceivedString, _osdDisplayTimeMs));
+					{
+						// Double-check menu state in UI thread context
+						if (_contextMenuOpen)
+						{
+							return;
+						}
+						_osdForm.ShowBarWithText(_volumeReceivedValue, _volumeReceivedString, _osdDisplayTimeMs);
+					});
 				}
 				catch (Exception exception)
 				{
@@ -369,6 +386,11 @@ namespace TotalMixKeyControl
 			{
 				return;
 			}
+			// Skip OSD while context menu is open
+			if (_contextMenuOpen)
+			{
+				return;
+			}
 			_osdForm.ShowBarWithText(_volumeReceivedValue, _volumeReceivedString, _osdDisplayTimeMs);
 		}
 
@@ -384,12 +406,21 @@ namespace TotalMixKeyControl
 					return;
 				}
 
+				// Skip OSD while context menu is open
+				if (_contextMenuOpen)
+				{
+					return;
+				}
+
 				if (InvokeRequired)
 				{
 					try
 					{
 						BeginInvoke(() =>
-							_osdForm.ShowBarWithText(_volumeReceivedValue, _volumeReceivedString, _osdDisplayTimeMs));
+						{
+							if (_contextMenuOpen) return;
+							_osdForm.ShowBarWithText(_volumeReceivedValue, _volumeReceivedString, _osdDisplayTimeMs);
+						});
 					}
 					catch (Exception exception)
 					{
