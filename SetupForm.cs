@@ -1,0 +1,225 @@
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+
+namespace TotalMixKeyControl
+{
+    internal class SetupForm : Form
+    {
+        private TextBox _ipBox = null!;
+    private NumericUpDown _portBox = null!;      // incoming to TotalMix (we send to this)
+    private NumericUpDown _outPortBox = null!;   // outgoing from TotalMix (we receive from this)
+        private TextBox _addrBox = null!;
+
+        private TextBox _hkUp = null!;
+        private TextBox _hkDown = null!;
+        private TextBox _hkMute = null!;
+
+    // OSD controls
+    private CheckBox _osdEnabled = null!;
+    private ComboBox _osdPosition = null!;
+    private ComboBox _osdMarginPreset = null!;
+    private NumericUpDown _osdDisplayTime = null!; // ms
+
+    // Volume controls
+    private ComboBox _volStepSpeed = null!; // 1-4 factor over 0.01f
+
+        public string OscIp => _ipBox.Text.Trim();
+    public int OscPort => (int)_portBox.Value;
+    public int OscOutPort => (int)_outPortBox.Value;
+        public string OscAddress => _addrBox.Text.Trim();
+
+        public string VolUpHotkey => _hkUp.Text.Trim();
+        public string VolDownHotkey => _hkDown.Text.Trim();
+        public string VolMuteHotkey => _hkMute.Text.Trim();
+
+        public float VolumeStepValue
+        {
+            get
+            {
+                int factor = 1;
+                if (int.TryParse(_volStepSpeed.SelectedItem?.ToString(), out var f) && f >= 1 && f <= 4)
+                    factor = f;
+                return 0.01f * factor;
+            }
+        }
+
+        public bool OsdEnabled => _osdEnabled.Checked;
+        public string OsdPosition => _osdPosition.SelectedItem?.ToString() ?? "BottomCenter";
+        public string OsdMarginPreset => _osdMarginPreset.SelectedItem?.ToString() ?? "Small";
+        public int OsdDisplayTimeMs => (int)_osdDisplayTime.Value;
+
+        public SetupForm(string ip, int port, int outPort, string address,
+            string hkUp, string hkDown, string hkMute,
+            bool osdEnabled, string osdPosition, string osdMarginPreset,
+            int osdDisplayTimeMs,
+            float volumeStep,
+            bool firstRun = false)
+        {
+            Text = "TotalMix Key Control Setup";
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            MaximizeBox = false;
+            MinimizeBox = false;
+            StartPosition = FormStartPosition.CenterScreen;
+            ClientSize = new Size(480, 620);
+
+            var lblTitle = new Label { Text = "TotalMix Key Control Setup", AutoSize = false, TextAlign = ContentAlignment.MiddleCenter, Location = new Point(130, 15), Size = new Size(220, 20) };
+
+            var lblUp = new Label { Text = "Volume Up Hotkey", Location = new Point(30, 70), Size = new Size(180, 20) };
+            _hkUp = new TextBox { Location = new Point(220, 70), Size = new Size(170, 20), Text = hkUp };
+            
+
+            var lblDown = new Label { Text = "Volume Down Hotkey", Location = new Point(30, 110), Size = new Size(180, 20) };
+            _hkDown = new TextBox { Location = new Point(220, 110), Size = new Size(170, 20), Text = hkDown };
+            
+
+            var lblMute = new Label { Text = "Volume Mute Hotkey", Location = new Point(30, 150), Size = new Size(180, 20) };
+            _hkMute = new TextBox { Location = new Point(220, 150), Size = new Size(170, 20), Text = hkMute };
+            
+
+            var lblIp = new Label { Text = "TotalMix FX OSC IP", Location = new Point(30, 190), Size = new Size(180, 20) };
+            _ipBox = new TextBox { Location = new Point(220, 190), Size = new Size(200, 20), Text = ip };
+
+            var lblPort = new Label { Text = "TotalMix FX OSC Port (incoming)", Location = new Point(30, 230), Size = new Size(180, 20) };
+            _portBox = new NumericUpDown { Location = new Point(220, 230), Size = new Size(200, 20), Minimum = 1, Maximum = 65535, Value = port };
+
+            var lblOutPort = new Label { Text = "TotalMix FX OSC Port (outgoing)", Location = new Point(30, 270), Size = new Size(180, 20) };
+            _outPortBox = new NumericUpDown { Location = new Point(220, 270), Size = new Size(200, 20), Minimum = 1, Maximum = 65535, Value = outPort };
+
+            // Volume Step Speed
+            var lblStep = new Label { Text = "Volume Step Speed", Location = new Point(30, 350), Size = new Size(180, 20) };
+            _volStepSpeed = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(220, 350), Size = new Size(200, 22) };
+            _volStepSpeed.Items.AddRange(new object[] { "1", "2", "3", "4" });
+            // infer selected from current volumeStep (0.01f * factor)
+            var factor = Math.Max(1, Math.Min(4, (int)Math.Round(volumeStep / 0.01f)));
+            _volStepSpeed.SelectedItem = factor.ToString();
+
+            // OSD group
+            var grpOsd = new GroupBox { Text = "OSD", Location = new Point(20, 390), Size = new Size(440, 160) };
+            _osdEnabled = new CheckBox { Text = "Enable OSD", Location = new Point(16, 28), Size = new Size(160, 22), Checked = osdEnabled };
+            var lblPos = new Label { Text = "Position", Location = new Point(16, 62), Size = new Size(140, 20) };
+            _osdPosition = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(160, 60), Size = new Size(240, 22) };
+            _osdPosition.Items.AddRange(new object[] { "TopLeft", "TopCenter", "TopRight", "BottomLeft", "BottomCenter", "BottomRight" });
+            _osdPosition.SelectedItem = (object?)(Array.Exists(new[]{"TopLeft","TopCenter","TopRight","BottomLeft","BottomCenter","BottomRight"}, x => string.Equals(x, osdPosition, StringComparison.OrdinalIgnoreCase)) ? osdPosition : "BottomCenter");
+            var lblMargin = new Label { Text = "Position Margin", Location = new Point(16, 96), Size = new Size(140, 20) };
+            _osdMarginPreset = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(160, 94), Size = new Size(240, 22) };
+            _osdMarginPreset.Items.AddRange(new object[] { "None", "Small", "Medium", "Large" });
+            _osdMarginPreset.SelectedItem = (object?)(Array.Exists(new[]{"None","Small","Medium","Large"}, x => string.Equals(x, osdMarginPreset, StringComparison.OrdinalIgnoreCase)) ? osdMarginPreset : "Small");
+            var lblTime = new Label { Text = "Display Time (ms)", Location = new Point(16, 128), Size = new Size(140, 20) };
+            _osdDisplayTime = new NumericUpDown { Location = new Point(160, 126), Size = new Size(120, 22), Minimum = 500, Maximum = 20000, Increment = 100, Value = Math.Max(500, Math.Min(20000, osdDisplayTimeMs <= 0 ? 2500 : osdDisplayTimeMs)) };
+            grpOsd.Controls.AddRange(new Control[] { _osdEnabled, lblPos, _osdPosition, lblMargin, _osdMarginPreset, lblTime, _osdDisplayTime });
+
+            var lblAddr = new Label { Text = "OSC Address", Location = new Point(30, 310), Size = new Size(180, 20) };
+            _addrBox = new TextBox { Location = new Point(220, 310), Size = new Size(200, 20), Text = address };
+
+            var btnOk = new Button { Text = "OK", Location = new Point(272, 570), Size = new Size(110, 30) };
+            var btnCancel = new Button { Text = "Cancel", Location = new Point(62, 570), Size = new Size(100, 30) };
+
+            btnOk.Click += (_, __) => { DialogResult = DialogResult.OK; Close(); };
+            btnCancel.Click += (_, __) => { DialogResult = DialogResult.Cancel; Close(); };
+
+            // First-run: app can't run without config; remove cancel/close affordances
+            if (firstRun)
+            {
+                btnCancel.Enabled = false;
+                btnCancel.Visible = false;
+                ControlBox = false; // hide window close button (X)
+
+                // Center the OK button when Cancel is hidden
+                var centeredX = (ClientSize.Width - btnOk.Width) / 2;
+                btnOk.Location = new Point(centeredX, btnOk.Location.Y);
+            }
+            else
+            {
+                // Center the pair (Cancel, OK) with a consistent gap when both are visible
+                int gap = 16;
+                int total = btnCancel.Width + gap + btnOk.Width;
+                int startX = (ClientSize.Width - total) / 2;
+                btnCancel.Location = new Point(startX, btnCancel.Location.Y);
+                btnOk.Location = new Point(startX + btnCancel.Width + gap, btnOk.Location.Y);
+            }
+
+            Controls.AddRange(new Control[]
+            {
+                lblTitle,
+                lblUp, _hkUp,
+                lblDown, _hkDown,
+                lblMute, _hkMute,
+                lblIp, _ipBox,
+                lblPort, _portBox,
+                lblOutPort, _outPortBox,
+                lblAddr, _addrBox,
+                lblStep, _volStepSpeed,
+                grpOsd,
+                btnOk, btnCancel
+            });
+
+            // Wire hotkey capture after controls exist, so we can chain focus
+            WireHotkeyCapture(_hkUp, _hkDown);
+            WireHotkeyCapture(_hkDown, _hkMute);
+            WireHotkeyCapture(_hkMute, null);
+
+            // Focus first hotkey after the form is shown (handle is created)
+            Shown += (_, __) =>
+            {
+                try
+                {
+                    _hkUp.Focus();
+                }
+                catch { }
+            };
+        }
+
+        private static void WireHotkeyCapture(TextBox tb, TextBox? next)
+        {
+            tb.ReadOnly = true;
+            const string Waiting = "Waiting for input";
+
+            // Show placeholder when focused and empty
+            tb.Enter += (s, e) =>
+            {
+                if (string.IsNullOrWhiteSpace(tb.Text))
+                {
+                    tb.Tag = "placeholder";
+                    tb.ForeColor = SystemColors.GrayText;
+                    tb.Text = Waiting;
+                }
+            };
+
+            // Remove placeholder on leave
+            tb.Leave += (s, e) =>
+            {
+                if (Equals(tb.Tag, "placeholder"))
+                {
+                    tb.Tag = null;
+                    tb.ForeColor = SystemColors.WindowText;
+                    tb.Clear();
+                }
+            };
+
+            tb.KeyDown += (s, e) =>
+            {
+                e.SuppressKeyPress = true;
+                var parts = new System.Collections.Generic.List<string>();
+                if (e.Control) parts.Add("Ctrl");
+                if (e.Alt) parts.Add("Alt");
+                if (e.Shift) parts.Add("Shift");
+                // Windows key capture is tricky; ignoring here intentionally to avoid conflicts
+
+                var key = e.KeyCode;
+                if (key == Keys.ControlKey || key == Keys.ShiftKey || key == Keys.Menu)
+                {
+                    tb.Text = string.Join("+", parts);
+                    return;
+                }
+                parts.Add(key.ToString());
+                tb.Tag = null;
+                tb.ForeColor = SystemColors.WindowText;
+                tb.Text = string.Join("+", parts);
+
+                // Move focus to next field if provided
+                next?.Focus();
+            };
+        }
+    }
+}

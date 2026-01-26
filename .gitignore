@@ -1,0 +1,54 @@
+# Build artifacts
+bin/
+obj/
+[Bb]uild/
+[Ll]og/
+[Dd]ebug*/
+[Rr]elease*/
+x64/
+x86/
+[Aa]rtifacts/
+TestResults/
+
+# Rider
+.idea/
+*.sln.DotSettings.user
+
+# VS/VSCode
+.vs/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# User-specific
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.rsuser
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+project.lock.json
+artifacts/
+*.nuget.props
+*.nuget.targets
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Rider/JetBrains
+.idea/
+*.sln.iml
+
+# Logs
+*.log
+
+# Publish
+publish/
