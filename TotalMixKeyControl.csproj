@@ -5,14 +5,17 @@
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-  <ApplicationIcon>icon.ico</ApplicationIcon>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
     <AssemblyName>TotalMixKeyControl</AssemblyName>
     <RootNamespace>TotalMixKeyControl</RootNamespace>
-    <!-- Optional: enable single-file publish for convenience -->
-    <PublishSingleFile>true</PublishSingleFile>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>false</SelfContained>
+    <Version>1.0.0</Version>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Velopack" Version="0.0.1298" />
+  </ItemGroup>
 
   <ItemGroup>
     <Content Include="icon.ico">

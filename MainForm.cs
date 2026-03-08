@@ -1,10 +1,14 @@
 using System.ComponentModel;
 using System.Text.RegularExpressions;
+using Velopack;
+using Velopack.Sources;
 
 namespace TotalMixKeyControl
 {
 	public partial class MainForm : Form
 	{
+		private const string GitHubRepoUrl = "https://github.com/alakangas/TotalMixKeyControl";
+
 		private readonly string _configPath;
 		private readonly NotifyIcon _notifyIcon;
 		private readonly ContextMenuStrip _contextMenuStrip;
@@ -12,6 +16,8 @@ namespace TotalMixKeyControl
 		private readonly OscReceiver _oscReceiver;
 		private readonly HotkeyManager _hotkeyManager;
 		private readonly OsdForm _osdForm;
+		private ToolStripMenuItem? _updateMenuItem;
+		private UpdateInfo? _pendingUpdate;
 
 		// Config values
 		private string _oscIp = "127.0.0.1";
@@ -106,6 +112,7 @@ namespace TotalMixKeyControl
 			}
 
 			LoadConfigAndInit();
+			CheckForUpdates();
 		}
 
 		private ContextMenuStrip BuildMenu()
@@ -113,8 +120,16 @@ namespace TotalMixKeyControl
 			var contextMenuStrip = new ContextMenuStrip();
 			contextMenuStrip.Opening += (_, _) => _contextMenuOpen = true;
 			contextMenuStrip.Closed += (_, _) => _contextMenuOpen = false;
+
+			_updateMenuItem = new ToolStripMenuItem("Update Available \u2014 Restart to Apply");
+			_updateMenuItem.Click += (_, _) => ApplyUpdate();
+			_updateMenuItem.Visible = false;
+
 			var setupMenuItem = new ToolStripMenuItem("Setup", null, (_, _) => ShowSetup());
 			var exitMenuItem = new ToolStripMenuItem("Exit", null, (_, _) => Close());
+
+			contextMenuStrip.Items.Add(_updateMenuItem);
+			contextMenuStrip.Items.Add(new ToolStripSeparator());
 			contextMenuStrip.Items.Add(setupMenuItem);
 			contextMenuStrip.Items.Add(new ToolStripSeparator());
 			contextMenuStrip.Items.Add(exitMenuItem);
@@ -439,6 +454,42 @@ namespace TotalMixKeyControl
 				InitializeOscBusOutput();
 			}
 			RegisterHotkeys();
+		}
+
+		private async void CheckForUpdates()
+		{
+			try
+			{
+				var mgr = new UpdateManager(new GithubSource(GitHubRepoUrl, null, false));
+				var update = await mgr.CheckForUpdatesAsync();
+				if (update == null)
+					return;
+
+				await mgr.DownloadUpdatesAsync(update);
+
+				_pendingUpdate = update;
+				if (_updateMenuItem != null)
+					_updateMenuItem.Visible = true;
+			}
+			catch (Exception ex)
+			{
+				Log.Error("Update check failed.", ex);
+			}
+		}
+
+		private void ApplyUpdate()
+		{
+			if (_pendingUpdate == null)
+				return;
+			try
+			{
+				var mgr = new UpdateManager(new GithubSource(GitHubRepoUrl, null, false));
+				mgr.ApplyUpdatesAndRestart(_pendingUpdate);
+			}
+			catch (Exception ex)
+			{
+				Log.Error("Failed to apply update.", ex);
+			}
 		}
 
 		protected override void OnClosing(CancelEventArgs eventArgs)
