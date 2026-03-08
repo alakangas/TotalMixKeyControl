@@ -1,33 +1,65 @@
-# TotalMixKeyControl
+# TotalMix Key Control
 
-A lightweight Windows app that maps global hotkeys to a TotalMix fader via OSC. It sends volume changes over UDP, listens for OSC feedback to reflect the exact fader value, and shows a simple on-screen display (OSD). Configuration lives in a small `config.ini`, with a first‑run Setup dialog to get you started quickly.
+A lightweight Windows tray app that maps global hotkeys to a [RME TotalMix FX](https://www.rme-audio.de/totalmix-fx.html) fader via OSC. Control your interface volume with keyboard shortcuts, see a live on-screen display (OSD) with the exact dB value, and let the app update itself automatically.
+
+## Installation
+
+1. Download **`TotalMixKeyControl-win-Setup.exe`** from the [latest release](https://github.com/alakangas/TotalMixKeyControl/releases/latest).
+2. Run the installer — it's a one-click install (no wizards, no admin rights required).
+3. The app launches automatically after installation and starts on Windows boot by default.
+
+The .NET 8 Desktop Runtime will be installed automatically if you don't already have it.
+
+A **portable zip** is also available on the releases page if you prefer not to install.
+
+## Getting Started
+
+On first launch a Setup dialog appears. The defaults work out of the box if TotalMix FX is configured with:
+
+- **Incoming OSC port:** 7001
+- **Outgoing OSC port:** 9001
+
+Set your preferred hotkeys for Volume Up, Volume Down, and Mute, then click OK.
+
+You can reopen the Setup dialog at any time by double-clicking the tray icon or right-clicking it and choosing **Setup**.
 
 ## Features
-- INI‑compatible configuration (`config.ini`):
-	- [OSC] IP, Port (incoming to TotalMix, default 7001), OutPort (feedback from TotalMix, default 9001), Address
-	- [Volume] VolumeStep, MaxValue
-	- [Hotkeys] VolumeUpHotkey, VolumeDownHotkey, VolumeMuteHotkey
-	- [OSD] Enabled, DisplayTime, Position, MarginPreset
-- Global hotkeys.
-- OSC sender with proper string padding and big-endian floats.
-- OSC feedback listener on the outgoing port to display the exact fader value reported by TotalMix.
-- On-screen Display (OSD) with translucent green bar and dB readout driven by TotalMix feedback.
 
-## Build
-Requires .NET 8 SDK.
+- **Global hotkeys** for volume up, down, and mute.
+- **On-screen display (OSD)** showing a translucent volume bar and the exact dB value reported by TotalMix.
+- **Automatic updates** — the app checks for new versions in the background and offers a one-click restart to apply.
+- **Run on Windows startup** — enabled by default, toggleable in Setup.
+- **System tray app** — runs silently in the background with no taskbar clutter.
+
+## Configuration
+
+Settings are stored in `%AppData%\TotalMixKeyControl\config.ini` and can be edited via the Setup dialog:
+
+| Section | Key | Description | Default |
+|---------|-----|-------------|---------|
+| OSC | IP | TotalMix FX host | `127.0.0.1` |
+| OSC | Port | Incoming OSC port (send to TotalMix) | `7001` |
+| OSC | OutPort | Outgoing OSC port (feedback from TotalMix) | `9001` |
+| OSC | Address | Fader OSC address | `/1/volume4` |
+| Volume | VolumeStep | Step size per keypress (multiplied by speed 1-4) | `0.01` |
+| Hotkeys | VolumeUpHotkey | e.g. `Ctrl+Alt+Up` | — |
+| Hotkeys | VolumeDownHotkey | e.g. `Ctrl+Alt+Down` | — |
+| Hotkeys | VolumeMuteHotkey | e.g. `Ctrl+Alt+M` | — |
+| OSD | Enabled | Show/hide the OSD | `1` |
+| OSD | Position | `TopLeft`, `TopCenter`, `TopRight`, `BottomLeft`, `BottomCenter`, `BottomRight` | `BottomCenter` |
+| OSD | MarginPreset | `None`, `Small`, `Medium`, `Large` | `Small` |
+| OSD | DisplayTime | OSD display duration in ms | `1900` |
+
+## Troubleshooting
+
+- **No OSD / no volume change:** Make sure TotalMix FX has OSC enabled (Options > Settings > OSC) with matching port numbers.
+- **Feedback values not showing:** Ensure the TotalMix outgoing port matches the OutPort setting, allow the app through your firewall, and confirm the OSC address points at a fader that emits feedback.
+- **Hotkeys not working:** Some key combinations may be reserved by Windows or other software. Try a different combination.
+
+## Building from Source
+
+Requires the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0).
 
 ```
 dotnet build -c Release
 ```
-
-## Run
-By default the app looks for `config.ini` next to the executable. You can also pass an explicit path as the first argument.
-
-```
-./TotalMixKeyControl.exe [optional-path-to-config.ini]
-```
-
-## Notes
-- If you already have TotalMix OSC configured with Incoming=7001 and Outgoing=9001 (defaults), no extra setup is required. The app sends to `Port` and listens on `OutPort`.
-- The OSD shows feedback values from TotalMix.
-- If feedback doesn’t appear, ensure the TotalMix Outgoing port matches `OutPort`, allow the app in your firewall, and confirm your `Address` points at a fader that emits feedback.
