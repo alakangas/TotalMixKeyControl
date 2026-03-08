@@ -10,7 +10,9 @@ namespace TotalMixKeyControl
 		[STAThread]
 		static void Main(string[] args)
 		{
-			VelopackApp.Build().Run();
+			VelopackApp.Build()
+				.OnFirstRun(_ => StartupManager.SetEnabled(true))
+				.Run();
 
 			Application.EnableVisualStyles();
 			Application.SetCompatibleTextRenderingDefault(false);

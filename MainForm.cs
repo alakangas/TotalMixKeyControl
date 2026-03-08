@@ -405,6 +405,7 @@ namespace TotalMixKeyControl
 				_osdEnabled, _osdPosition, _osdMarginPreset,
 				_osdDisplayTimeMs,
 				_volumeStep,
+				StartupManager.IsEnabled(),
 				firstRun
 			);
 
@@ -443,6 +444,8 @@ namespace TotalMixKeyControl
 				VolumeDownHotkey = _volumeDownHotkey,
 				VolumeMuteHotkey = _volumeMuteHotkey
 			});
+
+			StartupManager.SetEnabled(setupForm.RunOnStartup);
 
 			// Reconnect + rebind
 			_oscClient.Configure(_oscIp, _oscSendPort);

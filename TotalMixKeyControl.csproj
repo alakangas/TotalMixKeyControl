@@ -10,7 +10,7 @@
     <RootNamespace>TotalMixKeyControl</RootNamespace>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>false</SelfContained>
-    <Version>1.0.0</Version>
+    <Version>1.2.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

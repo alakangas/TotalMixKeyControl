@@ -24,6 +24,9 @@ namespace TotalMixKeyControl
     // Volume controls
     private ComboBox _volStepSpeed = null!; // 1-4 factor over 0.01f
 
+    // Startup
+    private CheckBox _runOnStartup = null!;
+
         public string OscIp => _ipBox.Text.Trim();
     public int OscPort => (int)_portBox.Value;
     public int OscOutPort => (int)_outPortBox.Value;
@@ -48,12 +51,14 @@ namespace TotalMixKeyControl
         public string OsdPosition => _osdPosition.SelectedItem?.ToString() ?? "BottomCenter";
         public string OsdMarginPreset => _osdMarginPreset.SelectedItem?.ToString() ?? "Small";
         public int OsdDisplayTimeMs => (int)_osdDisplayTime.Value;
+        public bool RunOnStartup => _runOnStartup.Checked;
 
         public SetupForm(string ip, int port, int outPort, string address,
             string hkUp, string hkDown, string hkMute,
             bool osdEnabled, string osdPosition, string osdMarginPreset,
             int osdDisplayTimeMs,
             float volumeStep,
+            bool runOnStartup,
             bool firstRun = false)
         {
             Text = "TotalMix Key Control Setup";
@@ -61,7 +66,7 @@ namespace TotalMixKeyControl
             MaximizeBox = false;
             MinimizeBox = false;
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(480, 620);
+            ClientSize = new Size(480, 660);
 
             var lblTitle = new Label { Text = "TotalMix Key Control Setup", AutoSize = false, TextAlign = ContentAlignment.MiddleCenter, Location = new Point(130, 15), Size = new Size(220, 20) };
 
@@ -110,8 +115,10 @@ namespace TotalMixKeyControl
             var lblAddr = MakeLabel("OSC Address", 30, 310);
             _addrBox = MakeTextBox(220, 310, 200, 20, address);
 
-            var btnOk = new Button { Text = "OK", Location = new Point(272, 570), Size = new Size(110, 30) };
-            var btnCancel = new Button { Text = "Cancel", Location = new Point(62, 570), Size = new Size(100, 30) };
+            _runOnStartup = new CheckBox { Text = "Run on Windows startup", Location = new Point(30, 562), Size = new Size(200, 22), Checked = runOnStartup };
+
+            var btnOk = new Button { Text = "OK", Location = new Point(272, 610), Size = new Size(110, 30) };
+            var btnCancel = new Button { Text = "Cancel", Location = new Point(62, 610), Size = new Size(100, 30) };
 
             btnOk.Click += (_, __) => { DialogResult = DialogResult.OK; Close(); };
             btnCancel.Click += (_, __) => { DialogResult = DialogResult.Cancel; Close(); };
@@ -149,6 +156,7 @@ namespace TotalMixKeyControl
                 lblAddr, _addrBox,
                 lblStep, _volStepSpeed,
                 grpOsd,
+                _runOnStartup,
                 btnOk, btnCancel
             });
 
