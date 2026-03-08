@@ -16,7 +16,7 @@ $repoUrl = "https://github.com/alakangas/TotalMixKeyControl"
 $iconPath = ".\icon.ico"
 
 Write-Host "=== Publishing $packId v$Version ===" -ForegroundColor Cyan
-dotnet publish -c Release -r win-x64 --self-contained false -o $publishDir
+dotnet publish TotalMixKeyControl.csproj -c Release -r win-x64 --self-contained false -o $publishDir
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
 
 Write-Host "`n=== Downloading previous release for delta generation ===" -ForegroundColor Cyan
